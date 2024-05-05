@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>下级管理</h2>
+    <a href="{% url 'subordinate_create' %}" class="btn btn-primary mb-3">新增下级账号</a>
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>用户名</th>
+                <th>账号类型</th>
+                <th>状态</th>
+                <th>本月可用额度</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for subordinate in subordinates %}
+            <tr>
+                <td>{{ subordinate.username }}</td>
+                <td>{{ subordinate.get_role_display }}</td>
+                <td>
+                    {% if subordinate.is_active %}
+                        正常
+                    {% else %}
+                        禁用
+                    {% endif %}
+                </td>
+                <td>{{ subordinate.monthly_quota }}</td>
+                <td>
+                    <a href="{% url 'subordinate_edit' subordinate.id %}" class="btn btn-sm btn-primary">编辑</a>
+                    <a href="{% url 'subordinate_delete' subordinate.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除吗?')">删除</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

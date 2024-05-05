@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <h2>提取记录</h2>
+    <form method="get" class="form-inline mb-4">
+        <input type="text" class="form-control mr-2" name="q" placeholder="搜索...">
+        <button type="submit" class="btn btn-primary">搜索</button>
+    </form>
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>提取时间</th>
+                <th>CDKEY</th>
+                <th>使用状态</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for record in records %}
+            <tr>
+                <td>{{ record.created_at }}</td>
+                <td>{{ record.cdkey }}</td>
+                <td>
+                    {% if record.is_used %}
+                        已使用
+                    {% elif record.is_expired %}
+                        已过期
+                    {% else %}
+                        未使用
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    {% if is_paginated %}
+    <nav>
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">上一页</a></li>
+            {% else %}
+            <li class="page-item disabled"><a class="page-link" href="#">上一页</a></li>
+            {% endif %}
+
+            {% for i in paginator.page_range %}
+            {% if page_obj.number == i %}
+            <li class="page-item active"><a class="page-link" href="#">{{ i }}</a></li>
+            {% else %}
+            <li class="page-item"><a class="page-link" href="?page={{ i }}">{{ i }}</a></li>
+            {% endif %}
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">下一页</a></li>
+            {% else %}
+            <li class="page-item disabled"><a class="page-link" href="#">下一页</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
