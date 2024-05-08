@@ -54,7 +54,7 @@ def login_view(request):
 
 def user_logout(request):
     logout(request)
-    return redirect('home')  # 或者重定向到其他适当的页面
+    return redirect('user:user_home')
 
 @login_required
 def generate_cdkey(request):
