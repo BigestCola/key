@@ -8,6 +8,7 @@ app_name = 'user'
 
 urlpatterns = [
     path('', views.user_home, name='user_home'),
+    path('', views.home, name='user_home'),
     path('login/', views.user_login, name='login'),
     path('list/', views.UserListView.as_view(), name='user_list'),
     path('create/', views.UserCreateView.as_view(), name='user_create'),
@@ -20,5 +21,7 @@ urlpatterns = [
     path('generate_cdkey/', views.generate_cdkey, name='generate_cdkey'),
     path('cdkey_record/', views.cdkey_record, name='cdkey_record'),
     path('subordinate/', views.subordinate, name='subordinate'),
+    path('create/', views.UserCreateView.as_view(), name='user_create'),
     path('user/', include(('user.urls', 'user'), namespace='user')),
+
 ]
