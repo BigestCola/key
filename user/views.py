@@ -38,10 +38,7 @@ def login_view(request):
     if request.method == 'POST':
         # 处理登录表单提交
         pass
-    return render(request, 'login.html')
-
-def home(request):
-    return render(request, 'home.html')
+    return render(request, 'user/login.html')
 
 def user_logout(request):
     logout(request)

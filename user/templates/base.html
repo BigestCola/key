@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <li><a href="{% url 'user:generate_cdkey' %}">Generate CDKey</a></li>
-
+<a href="{% url 'user_home' %}">Home</a>
 {% if user.is_authenticated %}
     <li><a href="{% url 'user:logout' %}">Logout</a></li>
 {% else %}

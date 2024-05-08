@@ -8,6 +8,7 @@ urlpatterns = [
     path('list/', views.UserListView.as_view(), name='user_list'),
     path('create/', views.UserCreateView.as_view(), name='user_create'),
     path('update/<int:pk>/', views.UserUpdateView.as_view(), name='user_update'),
+    path('login/', views.login_view, name='login'),
     path('login/', user_login, name='login'),
     path('logout/', user_logout, name='logout'),
     path('subordinate/', views.subordinate_list, name='subordinate_list'),
