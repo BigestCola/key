@@ -1,12 +1,31 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<h1>CDKEY 记录</h1>
-<ul>
-    {% for record in records %}
-    <li>{{ record.cdkey }} - {{ record.created_at }}</li>
-    {% endfor %}
-</ul>
+    <div class="container">
+        <h1>提取记录</h1>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>CDKey</th>
+                    <th>有效期</th>
+                    <th>提取时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for cdkey in cdkeys %}
+                    <tr>
+                        <td>{{ cdkey.key }}</td>
+                        <td>{{ cdkey.validity_days }} 天</td>
+                        <td>{{ cdkey.created_at }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="mt-4">
+            <a href="{% url 'user:cdkey_monthly_summary' %}" class="btn btn-primary mr-2">月汇总</a>
+            <a href="{% url 'user:cdkey_custom_summary' %}" class="btn btn-primary mr-2">自定义时间段汇总</a>
+            <a href="{% url 'user:user_home' %}" class="btn btn-secondary">返回</a>
+        </div>
+    </div>
 {% endblock %}
-<a href="{% url 'user:user_home' %}" class="btn btn-secondary">返回</a>
-<td>{{ cdkey.validity_days }} 天</td>

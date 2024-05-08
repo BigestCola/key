@@ -36,7 +36,7 @@ def cdkey_monthly_summary(request):
     # 获取当前用户的本月 CDKey 记录
     current_month = datetime.now().month
     current_year = datetime.now().year
-    cdkeys = CDKey.objects.filter(user=request.user, created_at__month=current_month, created_at__year=current_year)
+    cdkeys = CDKey.objects.filter(created_by=request.user, created_at__month=current_month, created_at__year=current_year)
     
     # 计算汇总数据
     total_cdkeys = cdkeys.count()
@@ -53,9 +53,19 @@ def cdkey_custom_summary(request):
     if request.method == 'POST':
         start_date = request.POST.get('start_date')
         end_date = request.POST.get('end_date')
+
+        # 检查日期是否为空
+        if not start_date or not end_date:
+            # 处理空日期的情况,例如设置默认值或返回错误信息
+            start_date = '2000-01-01'  # 设置默认的开始日期
+            end_date = datetime.now().strftime('%Y-%m-%d')  # 设置默认的结束日期为当前日期
+        
+        # 将日期字符串转换为日期时间对象
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
         
         # 获取指定时间段内的 CDKey 记录
-        cdkeys = CDKey.objects.filter(user=request.user, created_at__range=[start_date, end_date])
+        cdkeys = CDKey.objects.filter(created_by=request.user, created_at__range=[start_date, end_date])
         
         # 计算汇总数据
         total_cdkeys = cdkeys.count()
