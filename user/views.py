@@ -29,6 +29,8 @@ from .models import User, CDKey
 from django.db.models import Count
 from django.utils import timezone
 from datetime import timedelta
+from user.models import CDKey
+from datetime import datetime
 
 def subordinate_cdkeys_monthly_summary(request, user_id):
     subordinate = get_object_or_404(User, id=user_id)
@@ -277,20 +279,37 @@ def user_login(request):
 @login_required
 def cdkey_record(request):
     user = request.user
-    records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        month = request.POST.get('month')
+        year = request.POST.get('year')
+        if month and year:
+            # 根据选择的年份和月份查询数据库中符合条件的提取记录
+            records = CDKey.objects.filter(created_by=user, 
+                                           created_at__year=year, 
+                                           created_at__month=month).order_by('-created_at')
+        elif year:
+            # 根据选择的年份查询数据库中符合条件的提取记录
+            records = CDKey.objects.filter(created_by=user, 
+                                           created_at__year=year).order_by('-created_at')
+        else:
+            # 如果没有选择年份和月份,则查询所有提取记录
+            records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+    else:
+        # 如果不是POST请求,则查询所有提取记录
+        records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+    
+    # 获取当前年份和所有可选年份
+    current_year = datetime.now().year
+    years = range(current_year, current_year - 10, -1)
+    
     context = {
         'records': records,
+        'current_year': current_year,
+        'years': years,
     }
     return render(request, 'user/cdkey_record.html', context)
 
-@login_required
-def subordinate(request):
-    user = request.user
-    subordinates = User.objects.filter(superior=user)
-    context = {
-        'subordinates': subordinates,
-    }
-    return render(request, 'user/subordinate.html', context)
 
 @login_required
 def some_view(request):
@@ -310,3 +329,5 @@ def some_view(request):
         }
         
         return render(request, 'user/some_template.html', context)
+
+

@@ -1,6 +1,27 @@
 {% extends 'base.html' %}
 
 {% block content %}
+<a href="{% url 'previous_page' %}" class="btn btn-primary">返回</a>
+
+{% for record in records %}
+    <tr>
+        <td>{{ record.key }}</td>
+        <td>{{ record.created_at }}</td>
+        <td>{{ record.validity_days }} 天</td>
+        <!-- 其他字段 -->
+    </tr>
+{% endfor %}
+
+<form method="post" action="{% url 'cdkey_record' %}">
+    {% csrf_token %}
+    <select name="month">
+        <option value="1">1月</option>
+        <option value="2">2月</option>
+        <!-- 其他月份选项 -->
+    </select>
+    <button type="submit">月汇总</button>
+</form>
+
 <div class="container mt-5">
     <h2>提取记录</h2>
     <form method="get" class="form-inline mb-4">
