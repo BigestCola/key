@@ -3,6 +3,23 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
+def is_admin(user):
+    return user.user_type == 'ADMIN'
+
+def is_first_level_agent(user):
+    return user.user_type == 'FIRST_LEVEL_AGENT'
+
+def is_second_level_agent(user):
+    return user.user_type == 'SECOND_LEVEL_AGENT'
+
+def can_manage_user(request_user, managed_user):
+    if is_admin(request_user):
+        return True
+    elif is_first_level_agent(request_user) and is_second_level_agent(managed_user):
+        return managed_user.superior == request_user
+    else:
+        return False
+
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
         (1, '管理员'),
