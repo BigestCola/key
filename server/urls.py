@@ -7,7 +7,7 @@ from django.urls import path, include
 from . import views
 
 urlpatterns = [
-    path('', home, name='home'),
+    path('', views.home, name='home'),
     path('admin/', admin.site.urls),
     path('api/cdkey/', include('cdkey.urls')),
     path('api/user/', include('user.urls')),

@@ -6,19 +6,39 @@ from rest_framework import status
 from .models import User
 from .serializers import UserSerializer, UserCreateSerializer, UserUpdateSerializer
 from .permissions import IsAdmin, IsAgent, IsSuperior
-from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login
 from .forms import LoginForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import SubordinateForm
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import render
 from django.utils import timezone
 from datetime import timedelta
 from .models import CDKey
 from django.contrib.auth import logout
 from django.shortcuts import redirect
+from django.views.decorators.csrf import csrf_protect
+
+@csrf_protect
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('home')  # 登录成功后重定向到主页
+        else:
+            error_message = 'Invalid login credentials'
+            return render(request, 'login.html', {'error_message': error_message})
+    else:
+        return render(request, 'login.html')
+
+def login_view(request):
+    if request.method == 'POST':
+        # 处理登录表单提交
+        pass
+    return render(request, 'login.html')
 
 def home(request):
     return render(request, 'home.html')
