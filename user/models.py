@@ -2,6 +2,18 @@
 
 from django.contrib.auth.models import AbstractUser
 from django.db import models
+from django.contrib.auth.models import User
+from django.conf import settings
+
+class CDKey(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    expires_at = models.DateTimeField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    used_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='used_cdkeys')
+
+    def __str__(self):
+        return self.key
 
 def is_admin(user):
     return user.user_type == 'ADMIN'

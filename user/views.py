@@ -11,8 +11,44 @@ from django.contrib.auth import authenticate, login
 from .forms import LoginForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import User
 from .forms import SubordinateForm
+from django.contrib.auth.decorators import login_required
+from django.shortcuts import render
+from django.utils import timezone
+from datetime import timedelta
+from .models import CDKey
+from django.contrib.auth import logout
+from django.shortcuts import redirect
+
+def home(request):
+    return render(request, 'home.html')
+
+def user_logout(request):
+    logout(request)
+    return redirect('home')  # 或者重定向到其他适当的页面
+
+@login_required
+def generate_cdkey(request):
+    if request.method == 'POST':
+        days = int(request.POST.get('days'))
+        amount = int(request.POST.get('amount'))
+        
+        if request.user.remaining_quota >= amount:
+            cdkeys = []
+            for _ in range(amount):
+                key = generate_unique_cdkey()  # 你需要实现这个函数
+                expires_at = timezone.now() + timedelta(days=days)
+                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=request.user)
+                cdkeys.append(cdkey)
+            
+            request.user.remaining_quota -= amount
+            request.user.save()
+            
+            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys})
+        else:
+            messages.error(request, 'Insufficient quota.')
+    
+    return render(request, 'user/generate_cdkey.html')
 
 @login_required
 def subordinate_list(request):

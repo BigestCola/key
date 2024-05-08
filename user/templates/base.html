@@ -1,4 +1,18 @@
 <!DOCTYPE html>
+<li><a href="{% url 'user:generate_cdkey' %}">Generate CDKey</a></li>
+
+{% if user.is_authenticated %}
+    <li><a href="{% url 'user:logout' %}">Logout</a></li>
+{% else %}
+    <li><a href="{% url 'user:login' %}">Login</a></li>
+{% endif %}
+
+{% if user.is_authenticated %}
+    <a href="{% url 'user:logout' %}">Logout</a>
+{% else %}
+    <a href="{% url 'user:login' %}">Login</a>
+{% endif %}
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
