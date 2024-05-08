@@ -23,8 +23,6 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import UpdateView
 from .models import Profile
 from django.contrib import messages
-from .models import CDKey, Profile
-import uuid
 
 
 class UserUpdateView(UpdateView):
@@ -43,7 +41,7 @@ class UserCreateView(CreateView):
 def home(request):
     if request.user.is_authenticated:
         # 如果用户已经登录,重定向到用户主页
-        return redirect('user:user_home')
+        return redirect('user:home')
     else:
         # 如果用户未登录,显示主页
         return render(request, 'user/home.html')
@@ -104,16 +102,15 @@ def user_logout(request):
     logout(request)
     return redirect('user:user_home')
 
-def generate_unique_cdkey():
-    return str(uuid.uuid4())
-
 @login_required
 def generate_cdkey(request):
     user = request.user
     
+    # 检查用户是否有关联的 Profile 对象
     try:
         profile = user.profile
     except Profile.DoesNotExist:
+        # 如果用户没有关联的 Profile 对象,则创建一个新的 Profile 对象
         profile = Profile.objects.create(user=user)
     
     if request.method == 'POST':
@@ -123,20 +120,19 @@ def generate_cdkey(request):
         if profile.remaining_quota >= amount:
             cdkeys = []
             for _ in range(amount):
-                key = generate_unique_cdkey()
+                key = generate_unique_cdkey()  # 你需要实现这个函数
                 expires_at = timezone.now() + timedelta(days=days)
-                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=user)
+                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=request.user)
                 cdkeys.append(cdkey)
             
             profile.remaining_quota -= amount
             profile.save()
             
-            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys, 'success': True})
+            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys})
         else:
             messages.error(request, '配额不足，请联系上级')
     
     return render(request, 'user/generate_cdkey.html')
-
 @login_required
 def subordinate_list(request):
     subordinates = request.user.subordinates.all()

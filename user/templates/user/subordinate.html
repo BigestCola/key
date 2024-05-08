@@ -28,8 +28,9 @@
                 </td>
                 <td>{{ subordinate.monthly_quota }}</td>
                 <td>
-                    <a href="{% url 'subordinate_edit' subordinate.id %}" class="btn btn-sm btn-primary">编辑</a>
-                    <a href="{% url 'subordinate_delete' subordinate.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除吗?')">删除</a>
+                    <a href="{% url 'user:subordinate_edit' subordinate.id %}" class="btn btn-sm btn-primary">编辑</a>
+<a href="{% url 'user:subordinate_delete' subordinate.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除吗?')">删除</a>
+
                 </td>
             </tr>
             {% endfor %}
@@ -37,3 +38,5 @@
     </table>
 </div>
 {% endblock %}
+
+
