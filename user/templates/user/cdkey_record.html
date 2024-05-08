@@ -8,4 +8,5 @@
     {% endfor %}
 </ul>
 {% endblock %}
-<a href="{% url 'previous_page' %}" class="btn btn-primary">返回</a>
+<a href="{% url 'user:user_home' %}" class="btn btn-secondary">返回</a>
+<td>{{ cdkey.validity_days }} 天</td>

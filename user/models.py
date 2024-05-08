@@ -13,7 +13,7 @@ class CDKey(models.Model):
     created_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='created_cdkeys')
     used_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='used_cdkeys', null=True, blank=True)
     used_at = models.DateTimeField(null=True, blank=True)
-    validity_days = models.IntegerField(default=1)  # 新增字段
+    validity_days = models.IntegerField(choices=[(1, '1 天'), (31, '31 天')], default=1)
 
     def is_expired(self):
         return self.expires_at < timezone.now()

@@ -32,6 +32,46 @@ from datetime import timedelta
 from user.models import CDKey
 from datetime import datetime
 
+def cdkey_monthly_summary(request):
+    # 获取当前用户的本月 CDKey 记录
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    cdkeys = CDKey.objects.filter(user=request.user, created_at__month=current_month, created_at__year=current_year)
+    
+    # 计算汇总数据
+    total_cdkeys = cdkeys.count()
+    total_days = sum(cdkey.validity_days for cdkey in cdkeys)
+    
+    context = {
+        'cdkeys': cdkeys,
+        'total_cdkeys': total_cdkeys,
+        'total_days': total_days,
+    }
+    return render(request, 'user/cdkey_monthly_summary.html', context)
+
+def cdkey_custom_summary(request):
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+        
+        # 获取指定时间段内的 CDKey 记录
+        cdkeys = CDKey.objects.filter(user=request.user, created_at__range=[start_date, end_date])
+        
+        # 计算汇总数据
+        total_cdkeys = cdkeys.count()
+        total_days = sum(cdkey.validity_days for cdkey in cdkeys)
+        
+        context = {
+            'cdkeys': cdkeys,
+            'total_cdkeys': total_cdkeys,
+            'total_days': total_days,
+            'start_date': start_date,
+            'end_date': end_date,
+        }
+        return render(request, 'user/cdkey_custom_summary.html', context)
+    else:
+        return render(request, 'user/cdkey_custom_summary.html')
+
 def subordinate_cdkeys_monthly_summary(request, user_id):
     subordinate = get_object_or_404(User, id=user_id)
     if not can_manage_user(request.user, subordinate):
