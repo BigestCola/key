@@ -1,6 +1,5 @@
 # user/views.py
 
-from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import User
@@ -21,8 +20,10 @@ from .models import CDKey, User
 from django.urls import reverse
 from django.views.generic.edit import CreateView
 from django.urls import reverse_lazy
-from django.contrib.auth.models import User
 from django.views.generic.edit import UpdateView
+from .models import Profile
+from django.contrib import messages
+
 
 class UserUpdateView(UpdateView):
     model = User
@@ -40,10 +41,12 @@ class UserCreateView(CreateView):
 def home(request):
     if request.user.is_authenticated:
         # 如果用户已经登录,重定向到用户主页
-        return redirect('user_home')
+        return redirect('user:home')
     else:
         # 如果用户未登录,显示主页
-        return render(request, 'home.html')
+        return render(request, 'user/home.html')
+
+
 
 @login_required
 def user_home(request):
@@ -63,10 +66,7 @@ def user_home(request):
 @login_required
 def logout_view(request):
     logout(request)
-    return redirect('user_home')
-
-def home(request):
-    return render(request, 'home.html')
+    return redirect('user:user_home')
 
 @csrf_protect
 def login_view(request):
@@ -76,7 +76,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('home')  # 登录成功后重定向到主页
+            return redirect('user:home')  # 登录成功后重定向到主页
         else:
             error_message = 'Invalid login credentials'
             return render(request, 'login.html', {'error_message': error_message})
@@ -90,7 +90,7 @@ def login_view(request):
         user = authenticate(request, username=username, password=password)
         if user is not None:
             login(request, user)
-            return redirect('user_home')
+            return redirect('user:home')
         else:
             error_message = '无效的用户名或密码'
             return render(request, 'user/login.html', {'error_message': error_message})
@@ -105,12 +105,19 @@ def user_logout(request):
 @login_required
 def generate_cdkey(request):
     user = request.user
-    profile = user.profile
+    
+    # 检查用户是否有关联的 Profile 对象
+    try:
+        profile = user.profile
+    except Profile.DoesNotExist:
+        # 如果用户没有关联的 Profile 对象,则创建一个新的 Profile 对象
+        profile = Profile.objects.create(user=user)
+    
     if request.method == 'POST':
         days = int(request.POST.get('days'))
         amount = int(request.POST.get('amount'))
         
-        if request.user.remaining_quota >= amount:
+        if profile.remaining_quota >= amount:
             cdkeys = []
             for _ in range(amount):
                 key = generate_unique_cdkey()  # 你需要实现这个函数
@@ -118,15 +125,14 @@ def generate_cdkey(request):
                 cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=request.user)
                 cdkeys.append(cdkey)
             
-            request.user.remaining_quota -= amount
-            request.user.save()
+            profile.remaining_quota -= amount
+            profile.save()
             
             return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys})
         else:
             messages.error(request, 'Insufficient quota.')
     
     return render(request, 'user/generate_cdkey.html')
-
 @login_required
 def subordinate_list(request):
     subordinates = request.user.subordinates.all()
@@ -172,51 +178,16 @@ def user_login(request):
             user = authenticate(request, username=username, password=password)
             if user is not None:
                 login(request, user)
-                return redirect('home')  # 重定向到主页或其他页面
+                return redirect('user:user_home') # 重定向到主页或其他页面
     else:
         form = LoginForm()
     return render(request, 'user/login.html', {'form': form})
 
-class UserListView(APIView):
-    permission_classes = [IsAdmin | IsAgent]
-
-    def get(self, request):
-        if request.user.is_admin():
-            users = User.objects.all()
-        elif request.user.is_agent1():
-            users = request.user.subordinates.all() | User.objects.filter(pk=request.user.pk)
-        else:
-            users = User.objects.filter(pk=request.user.pk)
-        return Response(UserSerializer(users, many=True).data)
-
-@login_required
-class UserCreateView(APIView):
-    permission_classes = [IsAdmin | IsAgent]
-
-    def post(self, request):
-        serializer = UserCreateSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save(superior=request.user)
-            return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-@login_required
-class UserUpdateView(APIView):
-    permission_classes = [IsSuperior]
-
-    def put(self, request, pk):
-        user = User.objects.get(pk=pk)
-        self.check_object_permissions(request, user)
-        serializer = UserUpdateSerializer(user, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(UserSerializer(user).data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @login_required
 def cdkey_record(request):
     user = request.user
-    records = CDKey.objects.filter(user=user).order_by('-created_at')
+    records = CDKey.objects.filter(created_by=user).order_by('-created_at')
     context = {
         'records': records,
     }
@@ -237,16 +208,15 @@ def some_view(request):
         # 处理 POST 请求的逻辑
         # ...
         
-        # 处理完成后,重定向到 'user_home' URL
-        return redirect(reverse('user_home'))
+        # 处理完成后,重定向到 'home' URL
+        return redirect(reverse('user:home'))
     else:
         # 处理 GET 请求的逻辑
         # ...
         
         context = {
-            'user_home_url': reverse('user_home'),
+            'user_home_url': reverse('user:home'),
             # 其他上下文数据...
         }
         
         return render(request, 'user/some_template.html', context)
-
