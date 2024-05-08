@@ -19,6 +19,10 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_protect
 
+def logout_view(request):
+    logout(request)
+    return redirect('user_home')
+
 @csrf_protect
 def login_view(request):
     if request.method == 'POST':
