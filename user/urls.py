@@ -24,4 +24,6 @@ urlpatterns = [
     path('subordinate/<int:subordinate_id>/delete/', views.subordinate_delete, name='subordinate_delete'),
     path('subordinate/<int:user_id>/cdkeys/', views.subordinate_cdkeys_view, name='subordinate_cdkeys'),
     path('subordinate/', views.subordinate_list, name='subordinate_list'),
+    path('subordinate/<int:user_id>/cdkeys/monthly-summary/', views.subordinate_cdkeys_monthly_summary, name='subordinate_cdkeys_monthly_summary'),
+    path('subordinate/<int:user_id>/cdkeys/custom-summary/', views.subordinate_cdkeys_custom_summary, name='subordinate_cdkeys_custom_summary'),
 ]

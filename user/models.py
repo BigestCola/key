@@ -3,6 +3,34 @@
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.conf import settings
+from django.contrib.auth import get_user_model
+from django.utils import timezone
+
+class CDKey(models.Model):
+    key = models.CharField(max_length=255, unique=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    created_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='created_cdkeys')
+    used_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='used_cdkeys', null=True, blank=True)
+    used_at = models.DateTimeField(null=True, blank=True)
+    validity_days = models.IntegerField(default=1)  # 新增字段
+
+    def is_expired(self):
+        return self.expires_at < timezone.now()
+
+    def is_used(self):
+        return self.used_by is not None
+
+    def mark_as_used(self, user):
+        if not self.is_used() and not self.is_expired():
+            self.used_by = user
+            self.used_at = timezone.now()
+            self.save()
+            return True
+        return False
+
+    def __str__(self):
+        return self.key
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -28,7 +56,7 @@ class User(AbstractUser):
         db_table = 'user'
 
 class Profile(models.Model):
-    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    user = models.OneToOneField('User', on_delete=models.CASCADE)
     remaining_quota = models.PositiveIntegerField(default=0)
     total_quota = models.PositiveIntegerField(default=0)
 
@@ -46,16 +74,6 @@ class Profile(models.Model):
             self.save()
             return True
         return False
-
-class CDKey(models.Model):
-    key = models.CharField(max_length=255, unique=True)
-    expires_at = models.DateTimeField()
-    created_at = models.DateTimeField(auto_now_add=True)
-    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    used_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='used_cdkeys')
-
-    def __str__(self):
-        return self.key
 
 def is_admin(user):
     return user.user_type == 1

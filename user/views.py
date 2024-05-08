@@ -26,6 +26,43 @@ from django.contrib import messages
 from .models import CDKey, Profile
 import uuid
 from .models import User, CDKey
+from django.db.models import Count
+from django.utils import timezone
+from datetime import timedelta
+
+def subordinate_cdkeys_monthly_summary(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    now = timezone.now()
+    one_month_ago = now - timedelta(days=30)
+    cdkeys = CDKey.objects.filter(created_by=subordinate, created_at__gte=one_month_ago)
+    summary = cdkeys.values('validity_days').annotate(count=Count('validity_days'))
+
+    context = {
+        'subordinate': subordinate,
+        'summary': summary,
+    }
+    return render(request, 'user/subordinate_cdkeys_monthly_summary.html', context)
+
+def subordinate_cdkeys_custom_summary(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    cdkeys = CDKey.objects.filter(created_by=subordinate, created_at__range=[start_date, end_date])
+    summary = cdkeys.values('validity_days').annotate(count=Count('validity_days'))
+
+    context = {
+        'subordinate': subordinate,
+        'summary': summary,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    return render(request, 'user/subordinate_cdkeys_custom_summary.html', context)
 
 def can_manage_user(superior, subordinate):
     if superior.is_superuser:
