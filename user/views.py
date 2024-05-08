@@ -19,9 +19,23 @@ from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_protect
 
+from django.shortcuts import render, redirect
+from .models import CDKey, User
+
+def home(request):
+    if request.user.is_authenticated:
+        # 如果用户已经登录,重定向到用户主页
+        return redirect('user_home')
+    else:
+        # 如果用户未登录,显示主页
+        return render(request, 'home.html')
+
 def logout_view(request):
     logout(request)
     return redirect('user_home')
+
+def home(request):
+    return render(request, 'home.html')
 
 @csrf_protect
 def login_view(request):
