@@ -18,4 +18,6 @@ urlpatterns = [
     path('subordinate/<int:subordinate_id>/edit/', views.subordinate_edit, name='subordinate_edit'),
     path('subordinate/<int:subordinate_id>/delete/', views.subordinate_delete, name='subordinate_delete'),
     path('generate_cdkey/', views.generate_cdkey, name='generate_cdkey'),
+    path('cdkey_record/', views.cdkey_record, name='cdkey_record'),
+    path('subordinate/', views.subordinate, name='subordinate'),
 ]

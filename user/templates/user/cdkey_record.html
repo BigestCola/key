@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>CDKEY 记录</h1>
+<ul>
+    {% for record in records %}
+    <li>{{ record.cdkey }} - {{ record.created_at }}</li>
+    {% endfor %}
+</ul>
+{% endblock %}

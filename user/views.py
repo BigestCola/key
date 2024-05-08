@@ -154,3 +154,24 @@ class UserUpdateView(APIView):
             serializer.save()
             return Response(UserSerializer(user).data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+@login_required
+def cdkey_record(request):
+    user = request.user
+    records = CDKey.objects.filter(user=user).order_by('-created_at')
+    context = {
+        'records': records,
+    }
+    return render(request, 'user/cdkey_record.html', context)
+
+@login_required
+def subordinate(request):
+    user = request.user
+    subordinates = User.objects.filter(superior=user)
+    context = {
+        'subordinates': subordinates,
+    }
+    return render(request, 'user/subordinate.html', context)
+
+
+
