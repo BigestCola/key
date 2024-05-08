@@ -18,8 +18,6 @@ from .models import CDKey
 from django.contrib.auth import logout
 from django.shortcuts import redirect
 from django.views.decorators.csrf import csrf_protect
-
-from django.shortcuts import render, redirect
 from .models import CDKey, User
 
 def home(request):
