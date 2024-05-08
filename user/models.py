@@ -57,6 +57,7 @@ class User(AbstractUser):
 
 class Profile(models.Model):
     user = models.OneToOneField('User', on_delete=models.CASCADE)
+    credit = models.IntegerField(default=0)
     remaining_quota = models.PositiveIntegerField(default=0)
     total_quota = models.PositiveIntegerField(default=0)
 

@@ -10,7 +10,6 @@ from .forms import LoginForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import SubordinateForm
-from django.utils import timezone
 from datetime import timedelta
 from .models import CDKey
 from django.contrib.auth import logout
@@ -23,7 +22,207 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import UpdateView
 from .models import Profile
 from django.contrib import messages
+from .models import CDKey, Profile
+import uuid
+from .models import User, CDKey
+from django.db.models import Count
+from django.utils import timezone
+from datetime import timedelta
+from user.models import CDKey
+from datetime import datetime
+from django.db.models import Q
+from django.db.models import Count, Q, F, ExpressionWrapper, fields
+from datetime import timedelta
+from datetime import timedelta, date
+from django.db.models import Sum
 
+
+@login_required
+def subordinate_cdkey_record(request, subordinate_id):
+    subordinate = get_object_or_404(User, id=subordinate_id, superior=request.user)
+    
+    if request.method == 'POST':
+        month = request.POST.get('month')
+        year = request.POST.get('year')
+        
+        query = Q(created_by=subordinate)
+        
+        if month and year:
+            query &= Q(created_at__year=year, created_at__month=month)
+        elif year:
+            query &= Q(created_at__year=year)
+        
+        records = CDKey.objects.filter(query).order_by('-created_at')
+    else:
+        records = CDKey.objects.filter(created_by=subordinate).order_by('-created_at')
+    
+    current_year = date.today().year
+    years = range(current_year, current_year - 10, -1)
+    
+    records = records.annotate(
+        remaining_days=ExpressionWrapper(
+            F('expires_at') - date.today(),
+            output_field=fields.DurationField()
+        )
+    )
+    
+    validity_days_distribution = records.values('validity_days').annotate(count=Count('id')).order_by('validity_days')
+    
+    # 将有效期天数转换为天数,并按天数分组
+    validity_days_distribution = {
+        distribution['validity_days']: distribution['count']
+        for distribution in validity_days_distribution
+    }
+    
+    summary = {
+        'total': records.count(),
+        'validity_days_distribution': validity_days_distribution,
+    }
+    
+    context = {
+        'subordinate': subordinate,
+        'records': records,
+        'current_year': current_year,
+        'years': years,
+        'summary': summary,
+    }
+    return render(request, 'user/subordinate_cdkey_record.html', context)
+
+
+
+
+def cdkey_monthly_summary(request):
+    # 获取当前用户的本月 CDKey 记录
+    current_month = datetime.now().month
+    current_year = datetime.now().year
+    cdkeys = CDKey.objects.filter(created_by=request.user, created_at__month=current_month, created_at__year=current_year)
+    
+    # 计算汇总数据
+    total_cdkeys = cdkeys.count()
+    total_days = sum(cdkey.validity_days for cdkey in cdkeys)
+    
+    context = {
+        'cdkeys': cdkeys,
+        'total_cdkeys': total_cdkeys,
+        'total_days': total_days,
+    }
+    return render(request, 'user/cdkey_monthly_summary.html', context)
+
+def cdkey_custom_summary(request):
+    if request.method == 'POST':
+        start_date = request.POST.get('start_date')
+        end_date = request.POST.get('end_date')
+
+        # 检查日期是否为空
+        if not start_date or not end_date:
+            # 处理空日期的情况,例如设置默认值或返回错误信息
+            start_date = '2000-01-01'  # 设置默认的开始日期
+            end_date = datetime.now().strftime('%Y-%m-%d')  # 设置默认的结束日期为当前日期
+        
+        # 将日期字符串转换为日期时间对象
+        start_date = datetime.strptime(start_date, '%Y-%m-%d')
+        end_date = datetime.strptime(end_date, '%Y-%m-%d')
+        
+        # 获取指定时间段内的 CDKey 记录
+        cdkeys = CDKey.objects.filter(created_by=request.user, created_at__range=[start_date, end_date])
+        
+        # 计算汇总数据
+        total_cdkeys = cdkeys.count()
+        total_days = sum(cdkey.validity_days for cdkey in cdkeys)
+        
+        context = {
+            'cdkeys': cdkeys,
+            'total_cdkeys': total_cdkeys,
+            'total_days': total_days,
+            'start_date': start_date,
+            'end_date': end_date,
+        }
+        return render(request, 'user/cdkey_custom_summary.html', context)
+    else:
+        return render(request, 'user/cdkey_custom_summary.html')
+
+def subordinate_cdkeys_monthly_summary(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    now = timezone.now()
+    one_month_ago = now - timedelta(days=30)
+    cdkeys = CDKey.objects.filter(created_by=subordinate, created_at__gte=one_month_ago)
+    summary = cdkeys.values('validity_days').annotate(count=Count('validity_days'))
+
+    context = {
+        'subordinate': subordinate,
+        'summary': summary,
+    }
+    return render(request, 'user/subordinate_cdkeys_monthly_summary.html', context)
+
+def subordinate_cdkeys_custom_summary(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    cdkeys = CDKey.objects.filter(created_by=subordinate, created_at__range=[start_date, end_date])
+    summary = cdkeys.values('validity_days').annotate(count=Count('validity_days'))
+
+    context = {
+        'subordinate': subordinate,
+        'summary': summary,
+        'start_date': start_date,
+        'end_date': end_date,
+    }
+    return render(request, 'user/subordinate_cdkeys_custom_summary.html', context)
+
+def can_manage_user(superior, subordinate):
+    if superior.is_superuser:
+        return True
+    elif superior.role == User.ROLE_ADMIN:
+        return True
+    elif superior.role == User.ROLE_FIRST_LEVEL_AGENT and subordinate.superior == superior:
+        return True
+    else:
+        return False
+
+def subordinate_cdkeys_view(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    cdkeys = CDKey.objects.filter(created_by=subordinate)
+    context = {
+        'subordinate': subordinate,
+        'cdkeys': cdkeys,
+    }
+    return render(request, 'user/subordinate_cdkeys.html', context)
+
+def dashboard_view(request):
+    if request.user.is_authenticated:
+        user = request.user
+        if is_admin(user):
+            subordinates = User.objects.exclude(id=user.id)
+        elif is_first_level_agent(user):
+            subordinates = User.objects.filter(superior=user)
+        else:
+            subordinates = []
+
+        cdkey_info = []
+        for subordinate in subordinates:
+            cdkeys = CDKey.objects.filter(created_by=subordinate)
+            cdkey_info.append({
+                'subordinate': subordinate,
+                'cdkeys': cdkeys
+            })
+
+        context = {
+            'user': user,
+            'subordinates': subordinates,
+            'cdkey_info': cdkey_info
+        }
+        return render(request, 'user/dashboard.html', context)
+    else:
+        return redirect('user:login')
 
 class UserUpdateView(UpdateView):
     model = User
@@ -41,7 +240,7 @@ class UserCreateView(CreateView):
 def home(request):
     if request.user.is_authenticated:
         # 如果用户已经登录,重定向到用户主页
-        return redirect('user:home')
+        return redirect('user:user_home')
     else:
         # 如果用户未登录,显示主页
         return render(request, 'user/home.html')
@@ -102,15 +301,16 @@ def user_logout(request):
     logout(request)
     return redirect('user:user_home')
 
+def generate_unique_cdkey():
+    return str(uuid.uuid4())
+
 @login_required
 def generate_cdkey(request):
     user = request.user
     
-    # 检查用户是否有关联的 Profile 对象
     try:
         profile = user.profile
     except Profile.DoesNotExist:
-        # 如果用户没有关联的 Profile 对象,则创建一个新的 Profile 对象
         profile = Profile.objects.create(user=user)
     
     if request.method == 'POST':
@@ -120,23 +320,35 @@ def generate_cdkey(request):
         if profile.remaining_quota >= amount:
             cdkeys = []
             for _ in range(amount):
-                key = generate_unique_cdkey()  # 你需要实现这个函数
+                key = generate_unique_cdkey()
                 expires_at = timezone.now() + timedelta(days=days)
-                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=request.user)
+                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=user, validity_days=days)
                 cdkeys.append(cdkey)
             
             profile.remaining_quota -= amount
             profile.save()
             
-            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys})
+            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys, 'success': True})
         else:
             messages.error(request, '配额不足，请联系上级')
     
     return render(request, 'user/generate_cdkey.html')
+
 @login_required
 def subordinate_list(request):
     subordinates = request.user.subordinates.all()
+    
+    for subordinate in subordinates:
+        try:
+            subordinate.credit_limit = subordinate.profile.credit
+        except Profile.DoesNotExist:
+            subordinate.credit_limit = 0
+        
+        subordinate.used_credit = subordinate.used_cdkeys.filter(created_at__month=timezone.now().month).count()
+        subordinate.remaining_credit = subordinate.credit_limit - subordinate.used_credit
+
     return render(request, 'user/subordinate.html', {'subordinates': subordinates})
+
 
 @login_required
 def subordinate_create(request):
@@ -187,20 +399,60 @@ def user_login(request):
 @login_required
 def cdkey_record(request):
     user = request.user
-    records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        month = request.POST.get('month')
+        year = request.POST.get('year')
+        subordinate_id = request.POST.get('subordinate')
+        
+        # 构建查询条件
+        query = Q()
+        if subordinate_id:
+            subordinate = User.objects.get(id=subordinate_id)
+            query &= Q(created_by=subordinate)
+        else:
+            # 如果没有选择下级用户,则根据当前用户的角色查询记录
+            if user.is_superuser or user.is_staff:
+                # 如果是上级用户,则查询自己和所有下级用户的记录
+                subordinates = User.objects.filter(superior=user)
+                query &= Q(created_by__in=[user] + list(subordinates))
+            else:
+                # 如果是普通用户,则只查询自己的记录
+                query &= Q(created_by=user)
+        
+        if month and year:
+            query &= Q(created_at__year=year, created_at__month=month)
+        elif year:
+            query &= Q(created_at__year=year)
+        
+        records = CDKey.objects.select_related('created_by').filter(query).order_by('-created_at')
+    else:
+        # 如果不是POST请求,则根据当前用户的角色查询记录
+        if user.is_superuser or user.is_staff:
+            # 如果是上级用户,则查询自己和所有下级用户的记录
+            subordinates = User.objects.filter(superior=user)
+            records = CDKey.objects.select_related('created_by').filter(created_by__in=[user] + list(subordinates)).order_by('-created_at')
+        else:
+            # 如果是普通用户,则只查询自己的记录
+            records = CDKey.objects.select_related('created_by').filter(created_by=user).order_by('-created_at')
+    
+    # 获取当前年份和所有可选年份
+    current_year = datetime.now().year
+    years = range(current_year, current_year - 10, -1)
+    
+    # 获取下级用户列表
+    subordinates = []
+    if user.is_superuser or user.is_staff:
+        subordinates = User.objects.filter(superior=user)
+    
     context = {
         'records': records,
+        'current_year': current_year,
+        'years': years,
+        'subordinates': subordinates,
     }
     return render(request, 'user/cdkey_record.html', context)
 
-@login_required
-def subordinate(request):
-    user = request.user
-    subordinates = User.objects.filter(superior=user)
-    context = {
-        'subordinates': subordinates,
-    }
-    return render(request, 'user/subordinate.html', context)
 
 @login_required
 def some_view(request):
@@ -220,3 +472,5 @@ def some_view(request):
         }
         
         return render(request, 'user/some_template.html', context)
+
+

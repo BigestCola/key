@@ -1,0 +1,81 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h1>{{ subordinate.username }} 的 CDKey 记录</h1>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="row mb-3">
+        <div class="col">
+            <select name="year" class="form-control">
+                <option value="">所有年份</option>
+                {% for year in years %}
+                <option value="{{ year }}" {% if year == request.POST.year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <select name="month" class="form-control">
+                <option value="">所有月份</option>
+                {% for month in 1|make_list %}
+                <option value="{{ month }}" {% if month == request.POST.month %}selected{% endif %}>{{ month }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col">
+            <button type="submit" class="btn btn-primary">筛选</button>
+        </div>
+    </div>
+</form>
+
+<div class="row mb-3">
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">总提取数量</h5>
+                <p class="card-text">{{ summary.total }}</p>
+            </div>
+        </div>
+    </div>
+    {% for days, count in summary.validity_days_distribution.items %}
+    <div class="col">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">提取时设置的有效期 {{ days }} 天</h5>
+                <p class="card-text">{{ count }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>CDKey</th>
+            <th>提取时间</th>
+            <th>提取人</th>
+            <th>有效期</th>
+            <th>剩余天数</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for record in records %}
+        <tr>
+            <td>{{ record.key }}</td>
+            <td>{{ record.created_at }}</td>
+            <td>{{ record.created_by.username }}</td>
+            <td>{{ record.validity_days }} 天</td>
+            <td>
+                {% if record.remaining_days.days < 0 %}
+                    已过期
+                {% else %}
+                    {{ record.remaining_days.days }} 天
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}

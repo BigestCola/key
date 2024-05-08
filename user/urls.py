@@ -31,5 +31,7 @@ urlpatterns = [
     path('cdkey/record/', views.cdkey_record, name='cdkey_record'),
     path('cdkey/monthly-summary/', views.cdkey_monthly_summary, name='cdkey_monthly_summary'),
     path('cdkey/custom-summary/', views.cdkey_custom_summary, name='cdkey_custom_summary'),
+    path('subordinate/<int:subordinate_id>/cdkeys/', views.subordinate_cdkey_record, name='subordinate_cdkey_record'),
+    path('subordinate/<int:subordinate_id>/cdkey_record/', views.subordinate_cdkey_record, name='subordinate_cdkey_record'),
 
 ]

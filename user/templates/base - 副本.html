@@ -37,17 +37,8 @@
         {% endblock %}
     </header>
 
-    <!-- 添加返回按钮 -->
-    {% if request.path != '/user/home/' %}
-    <div class="container mt-3">
-        <button onclick="goBack()" class="btn btn-secondary">返回</button>
-    </div>
-    {% endif %}
-
     <main>
-        <div class="container mt-3">
-            {% block content %}{% endblock %}
-        </div>
+        {% block content %}{% endblock %}
     </main>
 
     <footer class="mt-5">
@@ -63,11 +54,5 @@
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     {% block scripts %}{% endblock %}
-
-    <script>
-        function goBack() {
-            window.history.back();
-        }
-    </script>
 </body>
 </html>

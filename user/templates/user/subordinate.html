@@ -2,6 +2,10 @@
 
 {% block content %}
 <div class="container mt-5">
+    <h2>管理员信息</h2>
+    <p>总额度: {{ total_credit|default:0 }}</p>
+    <p>剩余额度: {{ remaining_credit|default:0 }}</p>
+
     <h2>下级管理</h2>
     <a href="{% url 'user:subordinate_create' %}" class="btn btn-primary mb-3">新增下级账号</a>
     <table class="table table-striped">
@@ -10,7 +14,8 @@
                 <th>用户名</th>
                 <th>账号类型</th>
                 <th>状态</th>
-                <th>本月可用额度</th>
+                <th>授信额度</th>
+                <th>剩余额度</th>
                 <th>操作</th>
             </tr>
         </thead>
@@ -26,11 +31,12 @@
                         禁用
                     {% endif %}
                 </td>
-                <td>{{ subordinate.monthly_quota }}</td>
+                <td>{{ subordinate.credit_limit|default:0 }}</td>
+                <td>{{ subordinate.remaining_credit|default:0 }}</td>
                 <td>
                     <a href="{% url 'user:subordinate_edit' subordinate.id %}" class="btn btn-sm btn-primary">编辑</a>
                     <a href="{% url 'user:subordinate_delete' subordinate.id %}" class="btn btn-sm btn-danger" onclick="return confirm('确定要删除吗?')">删除</a>
-                    <a href="{% url 'user:subordinate_cdkeys' subordinate.id %}" class="btn btn-sm btn-info">查看提取 CDKey</a>
+                    <a href="{% url 'user:subordinate_cdkey_record' subordinate.id %}" class="btn btn-sm btn-info">查看提取 CDKey</a>
                 </td>
             </tr>
             {% endfor %}

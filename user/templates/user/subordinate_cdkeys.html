@@ -1,21 +1,32 @@
-<!-- subordinate_cdkeys.html -->
 {% extends 'base.html' %}
 
 {% block content %}
 <div class="container mt-5">
-    <h2>{{ subordinate.username }} 提取的 CDKey</h2>
+    <h2>{{ subordinate.username }} 的提取记录</h2>
     <table class="table table-striped">
         <thead>
             <tr>
                 <th>CDKey</th>
+                <th>提取时间</th>
                 <th>过期时间</th>
+                <th>状态</th>
             </tr>
         </thead>
         <tbody>
-            {% for cdkey in cdkeys %}
+            {% for record in records %}
             <tr>
-                <td>{{ cdkey.key }}</td>
-                <td>{{ cdkey.expires_at }}</td>
+                <td>{{ record.key }}</td>
+                <td>{{ record.created_at }}</td>
+                <td>{{ record.expires_at }}</td>
+                <td>
+                    {% if record.is_used %}
+                        已使用
+                    {% elif record.is_expired %}
+                        已过期
+                    {% else %}
+                        未使用
+                    {% endif %}
+                </td>
             </tr>
             {% endfor %}
         </tbody>

@@ -10,7 +10,6 @@ from .forms import LoginForm
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from .forms import SubordinateForm
-from django.utils import timezone
 from datetime import timedelta
 from .models import CDKey
 from django.contrib.auth import logout
@@ -31,6 +30,66 @@ from django.utils import timezone
 from datetime import timedelta
 from user.models import CDKey
 from datetime import datetime
+from django.db.models import Q
+from django.db.models import Count, Q, F, ExpressionWrapper, fields
+from datetime import timedelta
+from datetime import timedelta, date
+from django.db.models import Sum
+
+
+@login_required
+def subordinate_cdkey_record(request, subordinate_id):
+    subordinate = get_object_or_404(User, id=subordinate_id, superior=request.user)
+    
+    if request.method == 'POST':
+        month = request.POST.get('month')
+        year = request.POST.get('year')
+        
+        query = Q(created_by=subordinate)
+        
+        if month and year:
+            query &= Q(created_at__year=year, created_at__month=month)
+        elif year:
+            query &= Q(created_at__year=year)
+        
+        records = CDKey.objects.filter(query).order_by('-created_at')
+    else:
+        records = CDKey.objects.filter(created_by=subordinate).order_by('-created_at')
+    
+    current_year = date.today().year
+    years = range(current_year, current_year - 10, -1)
+    
+    records = records.annotate(
+        remaining_days=ExpressionWrapper(
+            F('expires_at') - date.today(),
+            output_field=fields.DurationField()
+        )
+    )
+    
+    validity_days_distribution = records.values('validity_days').annotate(count=Count('id')).order_by('validity_days')
+    
+    # 将有效期天数转换为天数,并按天数分组
+    validity_days_distribution = {
+        distribution['validity_days']: distribution['count']
+        for distribution in validity_days_distribution
+    }
+    
+    summary = {
+        'total': records.count(),
+        'validity_days_distribution': validity_days_distribution,
+    }
+    
+    context = {
+        'subordinate': subordinate,
+        'records': records,
+        'current_year': current_year,
+        'years': years,
+        'summary': summary,
+    }
+    return render(request, 'user/subordinate_cdkey_record.html', context)
+
+
+
 
 def cdkey_monthly_summary(request):
     # 获取当前用户的本月 CDKey 记录
@@ -263,7 +322,7 @@ def generate_cdkey(request):
             for _ in range(amount):
                 key = generate_unique_cdkey()
                 expires_at = timezone.now() + timedelta(days=days)
-                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=user)
+                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=user, validity_days=days)
                 cdkeys.append(cdkey)
             
             profile.remaining_quota -= amount
@@ -278,7 +337,20 @@ def generate_cdkey(request):
 @login_required
 def subordinate_list(request):
     subordinates = request.user.subordinates.all()
-    return render(request, 'user/subordinate.html', {'subordinates': subordinates})
+    
+    admin_profile = request.user.profile
+    total_credit = admin_profile.credit if admin_profile.credit else 0
+    remaining_credit = admin_profile.remaining_quota if admin_profile.remaining_quota else 0
+    
+    context = {
+        'subordinates': subordinates,
+        'total_credit': total_credit,
+        'remaining_credit': remaining_credit,
+    }
+    
+    return render(request, 'user/subordinate.html', context)
+
+
 
 @login_required
 def subordinate_create(request):
@@ -333,30 +405,53 @@ def cdkey_record(request):
     if request.method == 'POST':
         month = request.POST.get('month')
         year = request.POST.get('year')
-        if month and year:
-            # 根据选择的年份和月份查询数据库中符合条件的提取记录
-            records = CDKey.objects.filter(created_by=user, 
-                                           created_at__year=year, 
-                                           created_at__month=month).order_by('-created_at')
-        elif year:
-            # 根据选择的年份查询数据库中符合条件的提取记录
-            records = CDKey.objects.filter(created_by=user, 
-                                           created_at__year=year).order_by('-created_at')
+        subordinate_id = request.POST.get('subordinate')
+        
+        # 构建查询条件
+        query = Q()
+        if subordinate_id:
+            subordinate = User.objects.get(id=subordinate_id)
+            query &= Q(created_by=subordinate)
         else:
-            # 如果没有选择年份和月份,则查询所有提取记录
-            records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+            # 如果没有选择下级用户,则根据当前用户的角色查询记录
+            if user.is_superuser or user.is_staff:
+                # 如果是上级用户,则查询自己和所有下级用户的记录
+                subordinates = User.objects.filter(superior=user)
+                query &= Q(created_by__in=[user] + list(subordinates))
+            else:
+                # 如果是普通用户,则只查询自己的记录
+                query &= Q(created_by=user)
+        
+        if month and year:
+            query &= Q(created_at__year=year, created_at__month=month)
+        elif year:
+            query &= Q(created_at__year=year)
+        
+        records = CDKey.objects.select_related('created_by').filter(query).order_by('-created_at')
     else:
-        # 如果不是POST请求,则查询所有提取记录
-        records = CDKey.objects.filter(created_by=user).order_by('-created_at')
+        # 如果不是POST请求,则根据当前用户的角色查询记录
+        if user.is_superuser or user.is_staff:
+            # 如果是上级用户,则查询自己和所有下级用户的记录
+            subordinates = User.objects.filter(superior=user)
+            records = CDKey.objects.select_related('created_by').filter(created_by__in=[user] + list(subordinates)).order_by('-created_at')
+        else:
+            # 如果是普通用户,则只查询自己的记录
+            records = CDKey.objects.select_related('created_by').filter(created_by=user).order_by('-created_at')
     
     # 获取当前年份和所有可选年份
     current_year = datetime.now().year
     years = range(current_year, current_year - 10, -1)
     
+    # 获取下级用户列表
+    subordinates = []
+    if user.is_superuser or user.is_staff:
+        subordinates = User.objects.filter(superior=user)
+    
     context = {
         'records': records,
         'current_year': current_year,
         'years': years,
+        'subordinates': subordinates,
     }
     return render(request, 'user/cdkey_record.html', context)
 
