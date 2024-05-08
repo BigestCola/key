@@ -25,7 +25,56 @@ from .models import Profile
 from django.contrib import messages
 from .models import CDKey, Profile
 import uuid
+from .models import User, CDKey
 
+def can_manage_user(superior, subordinate):
+    if superior.is_superuser:
+        return True
+    elif superior.role == User.ROLE_ADMIN:
+        return True
+    elif superior.role == User.ROLE_FIRST_LEVEL_AGENT and subordinate.superior == superior:
+        return True
+    else:
+        return False
+
+def subordinate_cdkeys_view(request, user_id):
+    subordinate = get_object_or_404(User, id=user_id)
+    if not can_manage_user(request.user, subordinate):
+        return HttpResponseForbidden("You don't have permission to view this user's CDKeys.")
+
+    cdkeys = CDKey.objects.filter(created_by=subordinate)
+    context = {
+        'subordinate': subordinate,
+        'cdkeys': cdkeys,
+    }
+    return render(request, 'user/subordinate_cdkeys.html', context)
+
+def dashboard_view(request):
+    if request.user.is_authenticated:
+        user = request.user
+        if is_admin(user):
+            subordinates = User.objects.exclude(id=user.id)
+        elif is_first_level_agent(user):
+            subordinates = User.objects.filter(superior=user)
+        else:
+            subordinates = []
+
+        cdkey_info = []
+        for subordinate in subordinates:
+            cdkeys = CDKey.objects.filter(created_by=subordinate)
+            cdkey_info.append({
+                'subordinate': subordinate,
+                'cdkeys': cdkeys
+            })
+
+        context = {
+            'user': user,
+            'subordinates': subordinates,
+            'cdkey_info': cdkey_info
+        }
+        return render(request, 'user/dashboard.html', context)
+    else:
+        return redirect('user:login')
 
 class UserUpdateView(UpdateView):
     model = User

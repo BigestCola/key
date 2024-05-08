@@ -1,0 +1,48 @@
+<!-- dashboard.html -->
+<!-- ... -->
+<h2>下级用户列表</h2>
+<table class="table table-striped">
+  <thead>
+    <tr>
+      <th>用户名</th>
+      <th>提取 CDKey 数量</th>
+      <th>操作</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for info in cdkey_info %}
+      <tr>
+        <td>{{ info.subordinate.username }}</td>
+        <td>{{ info.cdkeys.count }}</td>
+        <td>
+          <button type="button" class="btn btn-info btn-sm" data-toggle="modal" data-target="#cdkeyModal{{ info.subordinate.id }}">查看提取 CDKey</button>
+        </td>
+      </tr>
+      
+      <!-- Modal -->
+      <div class="modal fade" id="cdkeyModal{{ info.subordinate.id }}" tabindex="-1" role="dialog" aria-labelledby="cdkeyModalLabel{{ info.subordinate.id }}" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h5 class="modal-title" id="cdkeyModalLabel{{ info.subordinate.id }}">{{ info.subordinate.username }} 提取的 CDKey</h5>
+              <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div class="modal-body">
+              <ul>
+                {% for cdkey in info.cdkeys %}
+                  <li>{{ cdkey.key }} - 过期时间: {{ cdkey.expires_at }}</li>
+                {% endfor %}
+              </ul>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-dismiss="modal">关闭</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </tbody>
+</table>
+<!-- ... -->
