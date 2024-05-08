@@ -16,12 +16,12 @@ class User(AbstractUser):
         ('agent', '代理'),
     )
 
-    superior = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subordinates')
-    role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='agent')
-    user_type = models.SmallIntegerField(choices=USER_TYPE_CHOICES, default=3)
-    is_active = models.BooleanField(default=True)
-    monthly_quota = models.IntegerField(default=0)
-    day_quota = models.IntegerField(default=0)
+    superior = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='subordinates', verbose_name='上级')
+    role = models.CharField(max_length=50, choices=ROLE_CHOICES, default='agent', verbose_name='角色')
+    user_type = models.SmallIntegerField(choices=USER_TYPE_CHOICES, default=3, verbose_name='用户类型')
+    is_active = models.BooleanField(default=True,verbose_name='是否激活')
+    monthly_quota = models.IntegerField(default=0,verbose_name='月度配额')
+    day_quota = models.IntegerField(default=0, verbose_name='日配额')
     quota_updated_at = models.DateField(auto_now_add=True)
 
     class Meta:
