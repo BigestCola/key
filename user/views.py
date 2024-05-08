@@ -40,9 +40,17 @@ def login_view(request):
 
 def login_view(request):
     if request.method == 'POST':
-        # 处理登录表单提交
-        pass
-    return render(request, 'user/login.html')
+        username = request.POST['username']
+        password = request.POST['password']
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            return redirect('user_home')
+        else:
+            error_message = '无效的用户名或密码'
+            return render(request, 'user/login.html', {'error_message': error_message})
+    else:
+        return render(request, 'user/login.html')
 
 def user_logout(request):
     logout(request)
@@ -50,6 +58,8 @@ def user_logout(request):
 
 @login_required
 def generate_cdkey(request):
+    user = request.user
+    profile = user.profile
     if request.method == 'POST':
         days = int(request.POST.get('days'))
         amount = int(request.POST.get('amount'))

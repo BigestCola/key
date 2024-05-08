@@ -15,6 +15,15 @@ class CDKey(models.Model):
     def __str__(self):
         return self.key
 
+class Profile(models.Model):
+    user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    superior = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='subordinates')
+    remaining_quota = models.PositiveIntegerField(default=0)
+    total_quota = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return f"{self.user.username}'s Profile"
+
 def is_admin(user):
     return user.user_type == 'ADMIN'
 
