@@ -130,7 +130,7 @@ def generate_cdkey(request):
             
             return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys})
         else:
-            messages.error(request, 'Insufficient quota.')
+            messages.error(request, '配额不足，请联系上级')
     
     return render(request, 'user/generate_cdkey.html')
 @login_required
