@@ -1,3 +1,5 @@
+<!-- \\user\templates\user\subordinate_cdkey_record.html
+
 {% extends 'base.html' %}
 
 {% block content %}
@@ -16,11 +18,11 @@
         </div>
         <div class="col">
             <select name="month" class="form-control">
-                <option value="">所有月份</option>
-                {% for month in 1|make_list %}
-                <option value="{{ month }}" {% if month == request.POST.month %}selected{% endif %}>{{ month }}</option>
-                {% endfor %}
-            </select>
+    <option value="">所有月份</option>
+    {% for month in months %}
+    <option value="{{ month }}" {% if month|stringformat:"s" == request.POST.month %}selected{% endif %}>{{ month }}</option>
+    {% endfor %}
+</select>
         </div>
         <div class="col">
             <button type="submit" class="btn btn-primary">筛选</button>
@@ -41,7 +43,7 @@
     <div class="col">
         <div class="card">
             <div class="card-body">
-                <h5 class="card-title">提取时设置的有效期 {{ days }} 天</h5>
+                <h5 class="card-title">CD KEY {{ days }} 天</h5>
                 <p class="card-text">{{ count }}</p>
             </div>
         </div>
@@ -78,4 +80,23 @@
     </tbody>
 </table>
 
-{% endblock %}
+{% endblock content %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

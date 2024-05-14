@@ -1,3 +1,5 @@
+<!-- \\user\templates\user\generate_cdkey.html -->
+
 {% extends 'base.html' %}
 
 {% block content %}
@@ -19,13 +21,14 @@
     <div class="mb-3">
       <label for="days" class="form-label">选择天数:</label>
       <select name="days" id="days" class="form-select">
-        <option value="1">1天</option>
-        <option value="31">31天</option>
+        {% for value, label in validity_options %}
+          <option value="{{ value }}">{{ label }}</option>
+        {% endfor %}
       </select>
     </div>
     <div class="mb-3">
       <label for="amount" class="form-label">数量:</label>
-      <input type="number" name="amount" id="amount" min="1" max="{{ user.remaining_quota }}" class="form-control">
+      <input type="number" name="amount" id="amount" min="1" max="{{ profile.remaining_quota }}" class="form-control">
     </div>
     <button type="submit" class="btn btn-primary">生成</button>
   </form>

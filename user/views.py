@@ -35,11 +35,13 @@ from django.db.models import Count, Q, F, ExpressionWrapper, fields
 from datetime import timedelta
 from datetime import timedelta, date
 from django.db.models import Sum
+from django.db.models.functions import Now
 
 
 @login_required
 def subordinate_cdkey_record(request, subordinate_id):
     subordinate = get_object_or_404(User, id=subordinate_id, superior=request.user)
+    months = list(range(1, 13))
     
     if request.method == 'POST':
         month = request.POST.get('month')
@@ -59,9 +61,12 @@ def subordinate_cdkey_record(request, subordinate_id):
     current_year = date.today().year
     years = range(current_year, current_year - 10, -1)
     
+    # 使用Now()函数计算剩余天数
+    from django.db.models.functions import Now
+    from django.db.models import ExpressionWrapper, F, fields
     records = records.annotate(
         remaining_days=ExpressionWrapper(
-            F('expires_at') - date.today(),
+            F('expires_at') - Now(),
             output_field=fields.DurationField()
         )
     )
@@ -81,14 +86,13 @@ def subordinate_cdkey_record(request, subordinate_id):
     
     context = {
         'subordinate': subordinate,
+        'months': months,
         'records': records,
         'current_year': current_year,
         'years': years,
         'summary': summary,
     }
     return render(request, 'user/subordinate_cdkey_record.html', context)
-
-
 
 
 def cdkey_monthly_summary(request):
@@ -302,46 +306,66 @@ def user_logout(request):
     return redirect('user:user_home')
 
 def generate_unique_cdkey():
+    """Generate a unique CDKey using UUID."""
     return str(uuid.uuid4())
 
 @login_required
 def generate_cdkey(request):
     user = request.user
     
-    try:
-        profile = user.profile
-    except Profile.DoesNotExist:
-        profile = Profile.objects.create(user=user)
+    # 确保每个用户都有一个对应的Profile
+    profile, created = Profile.objects.get_or_create(user=user)
     
+    # 获取所有有效期选项，确保视图和模型同步
+    validity_options = CDKey.VALIDITY_CHOICES
+
     if request.method == 'POST':
-        days = int(request.POST.get('days'))
-        amount = int(request.POST.get('amount'))
-        
+        days = int(request.POST.get('days', 1))  # 提供默认值为1，防止没有传递days参数
+        amount = int(request.POST.get('amount', 1))  # 提供默认值为1，防止没有传递amount参数
+
+        # 检查用户的剩余配额是否足够
         if profile.remaining_quota >= amount:
             cdkeys = []
             for _ in range(amount):
                 key = generate_unique_cdkey()
                 expires_at = timezone.now() + timedelta(days=days)
-                cdkey = CDKey.objects.create(key=key, expires_at=expires_at, created_by=user, validity_days=days)
+                cdkey = CDKey.objects.create(
+                    key=key,
+                    expires_at=expires_at,
+                    created_by=user,
+                    validity_days=days
+                )
                 cdkeys.append(cdkey)
             
+            # 减少用户的剩余配额并保存
             profile.remaining_quota -= amount
             profile.save()
             
-            return render(request, 'user/generate_cdkey.html', {'cdkeys': cdkeys, 'success': True})
+            # 返回成功消息和CDKey列表
+            return render(request, 'user/generate_cdkey.html', {
+                'cdkeys': cdkeys,
+                'success': True,
+                'profile': profile,
+                'validity_options': validity_options  # 传递有效期选项到模板
+            })
         else:
+            # 如果配额不足，显示错误消息
             messages.error(request, '配额不足，请联系上级')
     
-    return render(request, 'user/generate_cdkey.html')
+    # 如果不是POST请求或配额不足的情况，仍然显示表单
+    return render(request, 'user/generate_cdkey.html', {
+        'profile': profile,
+        'validity_options': validity_options  # 同样需要传递有效期选项到模板
+    })
 
 @login_required
 def subordinate_list(request):
     subordinates = request.user.subordinates.all()
-    
-    admin_profile = request.user.profile
-    total_credit = admin_profile.credit if admin_profile.credit else 0
-    remaining_credit = admin_profile.remaining_quota if admin_profile.remaining_quota else 0
-    
+
+    # 假设不是每个subordinate都有一个profile，这里我们进行检查
+    total_credit = sum(sub.profile.credit for sub in subordinates if hasattr(sub, 'profile') and sub.profile)
+    remaining_credit = sum(sub.profile.remaining_quota for sub in subordinates if hasattr(sub, 'profile') and sub.profile)
+
     context = {
         'subordinates': subordinates,
         'total_credit': total_credit,
@@ -349,7 +373,6 @@ def subordinate_list(request):
     }
     
     return render(request, 'user/subordinate.html', context)
-
 
 
 @login_required

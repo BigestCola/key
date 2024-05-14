@@ -1,3 +1,5 @@
+# server/sittings.py
+
 """
 Django settings for server project.
 
@@ -24,6 +26,9 @@ SECRET_KEY = 'django-insecure-!umumh!tetip-6mjnbcxe_!l*)6@b)1jkujo4kgklvh4!@x&-y
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+SESSION_COOKIE_AGE = 1200  # 1200 seconds = 20 minutes
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
 ALLOWED_HOSTS = []
 
@@ -143,3 +148,7 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+
+

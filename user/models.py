@@ -7,30 +7,51 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 class CDKey(models.Model):
+    VALIDITY_CHOICES = [
+        (1, '1 天'),
+        (30, '30 天'),
+        (90, '90 天'),
+        (180, '180 天'),
+        (365, '365 天'),
+        (730, '730 天'),
+    ]
+    
     key = models.CharField(max_length=255, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
     created_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='created_cdkeys')
     used_by = models.ForeignKey('User', on_delete=models.CASCADE, related_name='used_cdkeys', null=True, blank=True)
     used_at = models.DateTimeField(null=True, blank=True)
-    validity_days = models.IntegerField(choices=[(1, '1 天'), (31, '31 天')], default=1)
+    validity_days = models.IntegerField(choices=VALIDITY_CHOICES, default=1)
 
     def is_expired(self):
         return self.expires_at < timezone.now()
 
+    def remaining_days(self):
+        """Return the remaining days or '已过期' if the key is expired."""
+        now = timezone.now()
+        if self.expires_at > now:
+            remaining = (self.expires_at - now).days
+            return remaining if remaining > 0 else "已过期"
+        return "已过期"
+
     def is_used(self):
         return self.used_by is not None
 
+    is_used_field = models.BooleanField(default=False, verbose_name="是否已使用")
+
     def mark_as_used(self, user):
-        if not self.is_used() and not self.is_expired():
+        if not self.is_used_field and not self.is_expired():
             self.used_by = user
             self.used_at = timezone.now()
+            self.is_used_field = True
             self.save()
             return True
         return False
 
-    def __str__(self):
-        return self.key
+    def save(self, *args, **kwargs):
+        self.is_used_field = self.is_used()
+        super().save(*args, **kwargs)
 
 class User(AbstractUser):
     USER_TYPE_CHOICES = (
@@ -92,3 +113,4 @@ def can_manage_user(request_user, managed_user):
         return managed_user.superior == request_user
     else:
         return False
+
