@@ -4,7 +4,6 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from .models import CDKey
-from .serializers import CDKeySerializer, CDKeyGenerateSerializer, CDKeyExtractSerializer
 from user.permissions import IsAdmin, IsAgent
 from django.utils import timezone
 from .serializers import CDKeyVerifySerializer
@@ -86,3 +85,6 @@ class CDKeyVerifyView(APIView):
 
             return Response({'status': 1, 'expire_time': cdkey.expire_time}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+

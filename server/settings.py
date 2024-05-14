@@ -30,7 +30,7 @@ DEBUG = True
 SESSION_COOKIE_AGE = 1200  # 1200 seconds = 20 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 AUTH_USER_MODEL = 'user.User'
 
