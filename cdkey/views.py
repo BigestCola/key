@@ -8,6 +8,9 @@ from user.permissions import IsAdmin, IsAgent
 from django.utils import timezone
 from .serializers import CDKeySerializer, CDKeyGenerateSerializer, CDKeyExtractSerializer, CDKeyVerifySerializer
 from user.models import User
+import requests
+from rest_framework.permissions import AllowAny
+
 
 class CDKeyGenerateView(APIView):
     permission_classes = [IsAdmin | IsAgent]
@@ -43,9 +46,18 @@ class CDKeyExtractView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class CDKeyQueryView(APIView):
+    permission_classes = [AllowAny] 
+
     def get(self, request):
-        cdkeys = request.user.cdkeys.all()
-        return Response(CDKeySerializer(cdkeys, many=True).data)
+        cd_key = request.query_params.get('cd_key')
+        if cd_key:
+            try:
+                cdkey = CDKey.objects.get(cdkey=cd_key)
+                return Response(CDKeySerializer(cdkey).data)
+            except CDKey.DoesNotExist:
+                return Response({"error": "Invalid CDKey"}, status=400)
+        else:
+            return Response({"error": "CDKey parameter is required"}, status=400)
 
 class CDKeyVerifyView(APIView):
     def post(self, request):
@@ -86,3 +98,20 @@ class CDKeyVerifyView(APIView):
             return Response({'status': 1, 'expire_time': cdkey.expire_time}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+def make_request(url, token):
+    try:
+        headers = {'Authorization': f'Bearer {token}'}
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()  # 如果响应状态码不是200,则抛出异常
+        return response.text
+    except requests.exceptions.RequestException as e:
+        return f"Error: {e}"
+
+def main():
+    url = "http://192.168.3.87:8200/cdkey/"
+    token = "your_jwt_token_here"  # 将此替换为你的实际 JWT Token
+    response = make_request(url, token)
+    print("Server response:", response)
+
+if __name__ == "__main__":
+    main()

@@ -9,7 +9,7 @@ def make_request(url):
         return f"Error: {e}"
 
 def main():
-    url = "http://192.168.3.87:8200/cdkey/?cd_key=aa14682d-8a30-4e7d-b8ce-65b0faa80b3c"
+    url = "http://192.168.3.87:8200/cdkey/?cd_key=b29005d7-0135-4436-b472-8b97d6e08df0"
     response = make_request(url)
     print("Server response:", response)
 

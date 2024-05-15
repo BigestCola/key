@@ -38,6 +38,19 @@ from django.db.models import Sum
 from django.db.models.functions import Now
 
 
+def cdk(req):
+    n = req.POST.get('n')
+    if not n:
+        n = 1
+    n = int(n)
+    
+    CDKeys = []
+    for i in range(n):
+        code = CDKey.objects.create()
+        CDKeys.append(code.code)
+    
+    return render(req, 'user/cdk.html', locals())
+
 @login_required
 def subordinate_cdkey_record(request, subordinate_id):
     subordinate = get_object_or_404(User, id=subordinate_id, superior=request.user)
