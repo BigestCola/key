@@ -9,4 +9,5 @@ urlpatterns = [
     path('', home, name='home'),
     path('login/', user_login, name='login'),  # 直接使用 user_login
     path('user/', include('user.urls')),
+    path('cdkey/', include('cdkey.urls')),
 ]
