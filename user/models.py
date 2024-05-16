@@ -113,3 +113,4 @@ def can_manage_user(request_user, managed_user):
         return managed_user.superior == request_user
     else:
         return False
+

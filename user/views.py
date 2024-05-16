@@ -333,8 +333,11 @@ def generate_cdkey(request):
     validity_options = CDKey.VALIDITY_CHOICES
 
     if request.method == 'POST':
-        days = int(request.POST.get('days', 1))  # 提供默认值为1，防止没有传递days参数
-        amount = int(request.POST.get('amount', 1))  # 提供默认值为1，防止没有传递amount参数
+        days = request.POST.get('days', '1')  # 提供默认值为'1',防止没有传递days参数
+        days = int(days) if days.isdigit() else 1  # 如果days不是数字,则使用默认值1
+
+        amount = request.POST.get('amount', '1')  # 提供默认值为'1',防止没有传递amount参数
+        amount = int(amount) if amount.isdigit() else 1  # 如果amount不是数字,则使用默认值1
 
         # 检查用户的剩余配额是否足够
         if profile.remaining_quota >= amount:
@@ -510,3 +513,4 @@ def some_view(request):
         }
         
         return render(request, 'user/some_template.html', context)
+
