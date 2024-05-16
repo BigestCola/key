@@ -46,8 +46,8 @@ def cdk(req):
     
     CDKeys = []
     for i in range(n):
-        code = CDKey.objects.create()
-        CDKeys.append(code.code)
+        key = CDKey.objects.create()
+        CDKeys.append(key.key)
     
     return render(req, 'user/cdk.html', locals())
 
@@ -510,5 +510,3 @@ def some_view(request):
         }
         
         return render(request, 'user/some_template.html', context)
-
-
