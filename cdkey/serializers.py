@@ -8,7 +8,7 @@ from .constants import DURATION_CHOICES
 class CDKeySerializer(serializers.ModelSerializer):
     class Meta:
         model = CDKey
-        fields = ['id', 'cdkey', 'status', 'create_time', 'user', 'extract_time']
+        fields = ['id', 'key', 'created_at', 'expires_at', 'created_by', 'used_by', 'used_at', 'validity_days', 'is_used_field']
 
 class CDKeyGenerateSerializer(serializers.Serializer):
     duration = serializers.ChoiceField(choices=DURATION_CHOICES)
@@ -18,31 +18,28 @@ class CDKeyGenerateSerializer(serializers.Serializer):
         cdkeys = []
         for _ in range(self.validated_data['count']):
             cdkey = CDKey.generate_cdkey()
-            cdkeys.append(CDKey(cdkey=cdkey, duration=self.validated_data['duration'], user=user))
+            cdkeys.append(CDKey(key=cdkey, validity_days=self.validated_data['duration'], created_by=user))
         CDKey.objects.bulk_create(cdkeys)
         return cdkeys
 
 class CDKeyExtractSerializer(serializers.Serializer):
-    cdkey = serializers.CharField(max_length=64)
+    key = serializers.CharField(max_length=64)
 
-    def validate_cdkey(self, value):
+    def validate_key(self, value):
         try:
-            cdkey = CDKey.objects.get(cdkey=value)
+            cdkey = CDKey.objects.get(key=value)
         except CDKey.DoesNotExist:
             raise serializers.ValidationError('Invalid CDKey.')
-        if cdkey.status != CDKey.STATUS_UNUSED:
-            raise serializers.ValidationError('CDKey already used or expired.')
+        if cdkey.is_used_field:
+            raise serializers.ValidationError('CDKey already used.')
         return cdkey
 
     def save(self, user):
-        cdkey = self.validated_data['cdkey'] 
-        cdkey.status = CDKey.STATUS_USED
-        cdkey.extract_time = timezone.now()
-        cdkey.user = user
-        cdkey.save()
+        cdkey = self.validated_data['key'] 
+        cdkey.mark_as_used(user)
         return cdkey
 
 class CDKeyVerifySerializer(serializers.Serializer):
-    cdkey = serializers.CharField(max_length=64)
+    key = serializers.CharField(max_length=64)
     device_id = serializers.CharField(max_length=255)
-    app_version = serializers.CharField(max_length=20)
+    app_version = serializers.CharField(max_length=255)

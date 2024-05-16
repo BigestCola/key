@@ -52,7 +52,7 @@ class CDKeyQueryView(APIView):
         cd_key = request.query_params.get('cd_key')
         if cd_key:
             try:
-                cdkey = CDKey.objects.get(cdkey=cd_key)
+                cdkey = CDKey.objects.get(key=cd_key)
                 return Response(CDKeySerializer(cdkey).data)
             except CDKey.DoesNotExist:
                 return Response({"error": "Invalid CDKey"}, status=400)
@@ -70,23 +70,21 @@ class CDKeyVerifyView(APIView):
             # TODO: 验证请求签名
 
             try:
-                cdkey = CDKey.objects.get(cdkey=cdkey_text)
+                cdkey = CDKey.objects.get(key=cdkey_text)
             except CDKey.DoesNotExist:
                 return Response({'status': 0, 'error': 'Invalid CDKey'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if cdkey.status != 1:
-                return Response({'status': 0, 'error': 'CDKey already used or expired'}, status=status.HTTP_400_BAD_REQUEST)
+            if cdkey.is_used_field:
+                return Response({'status': 0, 'error': 'CDKey already used'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if cdkey.expire_time < timezone.now():
+            if cdkey.expires_at < timezone.now():
                 return Response({'status': 0, 'error': 'CDKey expired'}, status=status.HTTP_400_BAD_REQUEST)
 
-            if cdkey.user != request.user:
+            if cdkey.used_by != request.user:
                 return Response({'status': 0, 'error': 'CDKey does not belong to the authenticated user'}, status=status.HTTP_403_FORBIDDEN)
 
             # 更新CDKey的状态和提取时间
-            cdkey.status = 2
-            cdkey.extract_time = timezone.now()
-            cdkey.save()
+            cdkey.mark_as_used(request.user)
 
             # 记录用户提取CDKey的设备信息和应用版本
             CDKeyExtractRecord.objects.create(
@@ -95,7 +93,7 @@ class CDKeyVerifyView(APIView):
                 app_version=app_version
             )
 
-            return Response({'status': 1, 'expire_time': cdkey.expire_time}, status=status.HTTP_200_OK)
+            return Response({'status': 1, 'expire_time': cdkey.expires_at}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 def make_request(url, token):

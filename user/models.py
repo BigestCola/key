@@ -6,6 +6,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
+
 class CDKey(models.Model):
     VALIDITY_CHOICES = [
         (1, '1 天'),
@@ -75,6 +76,8 @@ class User(AbstractUser):
 
     class Meta:
         db_table = 'user'
+
+
 
 class Profile(models.Model):
     user = models.OneToOneField('User', on_delete=models.CASCADE)
