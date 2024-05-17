@@ -1,5 +1,5 @@
 # server/sittings.py
-
+import os
 """
 Django settings for server project.
 
@@ -26,6 +26,16 @@ SECRET_KEY = 'django-insecure-!umumh!tetip-6mjnbcxe_!l*)6@b)1jkujo4kgklvh4!@x&-y
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
+
+SECURE_HSTS_SECONDS = 3600  # 使用HTTP严格传输安全 (HSTS)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+
+SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 SESSION_COOKIE_AGE = 1200  # 1200 seconds = 20 minutes
 SESSION_EXPIRE_AT_BROWSER_CLOSE = False
@@ -143,6 +153,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

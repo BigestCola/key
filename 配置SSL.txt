@@ -1,0 +1,17 @@
+
+
+
+
+1，powershell
+wsl --install
+
+2，powershell
+wsl --update
+
+3，powershell
+sudo apt update
+sudo apt install certbot
+
+4,powershell
+sudo apt update
+sudo apt install nginx
